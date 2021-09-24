@@ -1,0 +1,7 @@
+seqLen: 50
+testLimit: 200000
+checkAsserts: true
+sender: ["0x10000", "0x20000", "0xabc00", "0xabc00"]
+coverage: false
+testMaxGas: 50000000000
+estimateGas: false

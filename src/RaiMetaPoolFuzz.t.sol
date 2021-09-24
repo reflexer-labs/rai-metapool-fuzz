@@ -2,13 +2,13 @@ pragma solidity ^0.6.7;
 
 import "ds-test/test.sol";
 
-import "./CurveMetaPoolFuzz.sol";
+import "./RaiMetaPoolFuzz.sol";
 
-contract CurveMetaPoolFuzzTest is DSTest {
-    CurveMetaPoolFuzz fuzz;
+contract RaiMetaPoolFuzzTest is DSTest {
+    RaiMetaPoolFuzz pool;
 
     function setUp() public {
-        fuzz = new CurveMetaPoolFuzz();
+        pool = new RaiMetaPoolFuzz();
     }
 
     function testFail_basic_sanity() public {
