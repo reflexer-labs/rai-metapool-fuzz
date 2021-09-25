@@ -1,46 +1,44 @@
-# RAI metapool fuzz
+# RAI Metapool Fuzz
 
-Fuzz campaign for RAI Curve metapool implementation (factory).
+Fuzz campaign for the RAI Curve metapool implementation (factory).
 
- To run the fuzzer, set up Echidna (https://github.com/crytic/echidna).
+To run the fuzzer, set up Echidna (https://github.com/crytic/echidna).
 
 To run:
 ```
 echidna-test src/RaiMetaPoolFuzz.sol --contract RaiMetaPoolFuzz --config echidna.yaml
 ```
 
-## Changes made to original contracts
+## Changes made to the original contracts
 
-Minor changes were made to the original contracts to enable setup:
+Minor changes were made to the original contracts to enable this setup:
 
 ### 3pool
-- Accepting token addresses in initialize.
+- Accepting token addresses in initialize
 
-### RAI meta pool
+### RAI Metapool
 - Base pool info (BASE_POOL and BASE_COINS) are now storage variables initialized through ```initialize()```
 - Removed the constructor (allowing implementation to be used as a pool, without a proxy)
 
 Original and modified contracts are in the folder _src/vyper_.
 
-
 ## Goal
 The RAI metapool is a slightly modified version of the metaUSD pool currently used by the Metapool Factory.
 
-The rate for RAI is adjusted using a snapshot of the current redemptionPrice (on the original it is always set to 1 and used to adjust for different token decimals).
+The rate for RAI is adjusted using a snapshot of the current `redemptionPrice` (on the original metapool the rate is always set to 1 and used to adjust for different token decimals).
 
-The original implementation has been audited and is battletested for months now.
+The original implementation has been audited and has been battletested for months.
 
-The goal of this campaign is to verify changes do not affect the contract in any harmful way, and swaps behave as intended.
-
+The goal of this campaign is to verify that the metapool changes do not affect the contract in any harmful way and swaps behave as intended.
 
 ## Description
 Both 3pool and a RAI metapool are deployed.
 
-3pool is initialized with 90mm and the RAI meta pool with 166,000 RAI and the equivalent in 3pool (around the minimum threshold to be listed in Curve's UI).
+3pool is initialized with $90mm and the RAI meta pool with 166,000 RAI and the equivalent in 3pool (around the minimum threshold to be listed in Curve's UI).
 
-The script will perform swaps (also with the underlying 3pool tokens), and check received amount allowing for an accepted slippage.
+The script will perform swaps (also with the underlying 3pool tokens), and check received amounts (allowing for a slippage threshold).
 
-Redemption price starts at 3 and deviates within a preset window.
+The redemption price starts at $3 and deviates within a preset window.
 
 Callers have unlimited token balances. The number of different users can be set in echidna.yaml.
 
@@ -61,7 +59,7 @@ assertion in swap: passed! 🎉
 Seed: -7833100418140387905
 ```
 
-Running swaps of limited value ensure that all swaps go through (the pool isn't depleated by one large or several swaps to the same side). Removing the cap from the swap, we can have an insight on the size of a single trade needed to cause a slippage of 1% (echidna will shrink the input to the approximate minimum failure):
+Running swaps of limited value ensure that all swaps go through (the pool isn't depleted by one large swap or several swaps to the same side). Removing the cap from the swap, we can have an insight on the size of a single trade needed to cause a slippage of 1% (echidna will shrink the input to the approximate minimum failure):
 
 ```
 assertion in swap: failed!💥
@@ -72,7 +70,7 @@ assertion in swap: failed!💥
 Seed: -1561486297794490057
 ```
 
-141,174.359536... or ~30% of the total token (from) liquidity.
+141,174.359536... or ~30% of the total token supply (from) liquidity.
 
 67,326.23 (13%) for .5% slippage.
 
@@ -92,6 +90,3 @@ Seed: -7016443365875589214
 
 ## Conclusion
 No exceptions noted. The pool behaves as inteded in the described scenario, with the main difference from the currently in prod metapool taken into consideration (RAI's moving redemption price).
-
-
-
