@@ -15,6 +15,8 @@ abstract contract RAIPoolLike {
     function redemption_price_snap() external view virtual returns (address);
     function deployer() external view virtual returns (address);
     function coins(uint) external view virtual returns(address);
+    function get_virtual_price() external virtual view returns(uint);
+    function approve(address, uint) external virtual returns(bool);
 }
 
 abstract contract _3poolLike {
@@ -26,11 +28,13 @@ abstract contract _3poolLike {
 
 contract User {
     RAIPoolLike raiPool;
+    event CreateUser();
 
     constructor(RAIPoolLike pool) public {
         raiPool = pool;
         DSToken(raiPool.coins(0)).approve(address(raiPool), uint(-1));
         DSToken(raiPool.coins(1)).approve(address(raiPool), uint(-1));
+        emit CreateUser();
     }
 
     function swap(int128 _i, int128 _j, uint _dx) public returns (uint) {
@@ -39,6 +43,7 @@ contract User {
 }
 
 contract RaiMetaPoolFuzz is Bytecodes {
+    uint constant RAY = 10**27;
     mapping (address => User) users;
     // tokens
     DSToken rai;
@@ -58,7 +63,7 @@ contract RaiMetaPoolFuzz is Bytecodes {
     // Amplification factor (RAI meta pool)
     uint A = 100;
     // Redemption price deviation
-    uint redemptionPriceDeviation = 20;     // 20 == 2%
+    uint redemptionPriceDeviation = 50;     // 20 == 2%
     // Accepted slippage, swaps with more than the expected slippage will be flagged as failures by the fuzzer
     uint acceptedSlippage = 10;             // 10 == 1%
     // Initial RAI liquidity, 3pool will have 10x more liquidity, and the RAI pool will be seeded proportionally (~3 3pool per RAI)
@@ -146,28 +151,41 @@ contract RaiMetaPoolFuzz is Bytecodes {
     modifier createUser {
         if (address(users[msg.sender]) == address(0)) {
             users[msg.sender] = new User(raiMetaPool);
-            _3poolToken.approve(address(users[msg.sender]), uint(-1));
-            rai.approve(address(users[msg.sender]), uint(-1));
         }
         _;
     }
 
     // swap
     function swap(bool rai3pool, uint amount) public createUser {
+        amount = (amount % 10000  ether) + 1 ether;
+        // amount = amount + 1 ether;
         User usr = users[msg.sender];
-        uint dy = usr.swap(
-            rai3pool ? 0 : 1,
-            rai3pool ? 1 : 0,
+        uint coinFrom = rai3pool ? 0 : 1;
+        uint coinTo = rai3pool ? 1 : 0;
+
+        DSToken(raiMetaPool.coins(coinFrom)).mint(address(usr), amount);
+
+        uint received = usr.swap(
+            int128(coinFrom),
+            int128(coinTo),
             amount
         );
-        // assert within slippage tollerance
 
+        if (coinFrom == 0) {
+            assertWithinAcceptedSlippage(received, (amount * redemptionPriceSnap.snappedRedemptionPrice()) / RAY);
+        } else {
+            assertWithinAcceptedSlippage(received, (amount * RAY) / redemptionPriceSnap.snappedRedemptionPrice());
+        }
+    }
+
+    function assertWithinAcceptedSlippage(uint actual, uint expected) internal {
+        uint range = (actual / 1000) * acceptedSlippage;
+        assert(expected > actual - range/2 && expected < actual + range/2);
     }
 
     // fuzz redemption price
-
-
-    // properties
-
-
+    function fuzzRedemptionPrice(uint amount) public {
+        uint range = (3*10**27 / 1000) * redemptionPriceDeviation;
+        redemptionPriceSnap.setRedemptionPriceSnap(3*10**27 - (range / 2) + (amount % range));
+    }
 }

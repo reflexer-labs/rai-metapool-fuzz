@@ -5,17 +5,13 @@ import "ds-test/test.sol";
 import "./RaiMetaPoolFuzz.sol";
 
 contract RaiMetaPoolFuzzTest is DSTest {
-    RaiMetaPoolFuzz pool;
+    RaiMetaPoolFuzz fuzz;
 
     function setUp() public {
-        pool = new RaiMetaPoolFuzz();
-    }
-
-    function testFail_basic_sanity() public {
-        assertTrue(false);
+        fuzz = new RaiMetaPoolFuzz();
     }
 
     function test_basic_sanity() public {
-        assertTrue(true);
+        fuzz.swap(true, 30 ether);
     }
 }
